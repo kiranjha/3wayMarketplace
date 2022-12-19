@@ -39,7 +39,8 @@ contract Marketplace is ReentrancyGuard {
 
     //CANCELLED
     mapping(address => mapping(uint256 => bool)) public CancelledEngAuction;
-    mapping(address => mapping(uint256 => bool)) public CancelledFixedPriceMarket;
+    mapping(address => mapping(uint256 => bool))
+        public CancelledFixedPriceMarket;
     mapping(address => mapping(uint256 => bool)) public CancelledDutchAuction;
 
     //ENGLISH AUCTION VARIABLES
@@ -49,7 +50,7 @@ contract Marketplace is ReentrancyGuard {
         address highestBidder;
         uint256 highestBid;
     }
-    mapping(address => mapping(uint256 => Bidding)) private bidding;
+    mapping(address => mapping(uint256 => Bidding)) public bidding;
     // mapping(address => mapping(uint256 => mapping(address => uint256))) public bids;    //per person bids
 
     //DUTCH AUCTION VARIABLES
@@ -159,51 +160,100 @@ contract Marketplace is ReentrancyGuard {
     }
 
     //ADD LISTING at FIXED PRICE
-    function addItem(address _nftAddress, uint256 _tokenId, uint256 _price) 
-    external 
-    s_notListed(_nftAddress, _tokenId, msg.sender)
-    isOwner(_nftAddress, _tokenId, msg.sender) {
-        if(_price <= 0) {
+    function addItem(
+        address _nftAddress,
+        uint256 _tokenId,
+        uint256 _price
+    )
+        external
+        s_notListed(_nftAddress, _tokenId, msg.sender)
+        isOwner(_nftAddress, _tokenId, msg.sender)
+    {
+        if (_price <= 0) {
             revert PriceMustBeAboveZero();
         }
 
         IERC721 nft = IERC721(_nftAddress);
-        if(nft.getApproved(_tokenId) != address(this)) {
+        if (nft.getApproved(_tokenId) != address(this)) {
             revert NotApprovedForMarketplace();
         }
         f_listings[_nftAddress][_tokenId] = Listing(_price, msg.sender);
         emit ItemListed(msg.sender, _nftAddress, _tokenId, _price);
     }
-    //ADD LISTING IN ENGLISH AUCTION
-    function addEngAuction(address _nftAddress, uint256 _nftId, uint256 _startingBid, uint256 _startAt, uint256 _endAt) 
-    external
-     {
 
+    //ADD LISTING IN ENGLISH AUCTION
+    function addEngAuction(
+        address _nftAddress,
+        uint256 _nftId,
+        uint256 _startingBid,
+        uint256 _startAt,
+        uint256 _endAt
+    ) external {
         //  e_notListed(_nftAddress, _nftId, msg.sender)
         // e_isOwner(_nftAddress, _nftId, msg.sender)
-        if(_startingBid <= 0) {
+        if (_startingBid <= 0) {
             revert PriceMustBeAboveZero();
         }
         IERC721 nft = IERC721(_nftAddress);
-        if(nft.getApproved(_nftId) != address(this)) {
+        if (nft.getApproved(_nftId) != address(this)) {
             revert NotApprovedForMarketplace();
         }
-        e_listings[_nftAddress][_nftId] = EngListing(_startingBid, msg.sender, _startAt, _endAt);
+        e_listings[_nftAddress][_nftId] = EngListing(
+            _startingBid,
+            msg.sender,
+            _startAt,
+            _endAt
+        );
         // bidding[_nftAddress][_nftId] = Bidding(previousBidder.push(0),previousBids.push(0),address(0), _startingBid);
 
-        emit EngItemListed(msg.sender, _nftAddress, _nftId, _startingBid, _startAt, _endAt);
+        emit EngItemListed(
+            msg.sender,
+            _nftAddress,
+            _nftId,
+            _startingBid,
+            _startAt,
+            _endAt
+        );
     }
+
     //ADD LISTING IN DUTCH AUCTION
-    function addDutchAuction(address _nftAddress, uint256 _nftId, uint256 _startPrice, uint256 _endPrice, uint256 _discountRate, uint256 _startAt, uint256 _endAt, uint256 _duration) external {
-        if(_startPrice <= 0 && _endPrice <= 0 && _discountRate <= 0) {
+    function addDutchAuction(
+        address _nftAddress,
+        uint256 _nftId,
+        uint256 _startPrice,
+        uint256 _endPrice,
+        uint256 _discountRate,
+        uint256 _startAt,
+        uint256 _endAt,
+        uint256 _duration
+    ) external {
+        if (_startPrice <= 0 && _endPrice <= 0 && _discountRate <= 0) {
             revert PriceMustBeAboveZero();
         }
         IERC721 nft = IERC721(_nftAddress);
-        if(nft.getApproved(_nftId) != address(this)) {
+        if (nft.getApproved(_nftId) != address(this)) {
             revert NotApprovedForMarketplace();
         }
-        d_listings[_nftAddress][_nftId] = DutchListing(_startPrice, _endPrice, _discountRate, msg.sender, _startAt, _endAt, _duration);
-        emit DutchItemListed(msg.sender, _nftAddress, _nftId, _startPrice, _endPrice, _discountRate, _startAt, _endAt, _duration);
+        d_listings[_nftAddress][_nftId] = DutchListing(
+            _startPrice,
+            _endPrice,
+            _discountRate,
+            msg.sender,
+            _startAt,
+            _endAt,
+            _duration
+        );
+        emit DutchItemListed(
+            msg.sender,
+            _nftAddress,
+            _nftId,
+            _startPrice,
+            _endPrice,
+            _discountRate,
+            _startAt,
+            _endAt,
+            _duration
+        );
     }
 
     //CANCEL FIXED LISTING
@@ -216,6 +266,7 @@ contract Marketplace is ReentrancyGuard {
         CancelledFixedPriceMarket[_nftAddress][_nftId] = true;
         emit ItemDeleted(msg.sender, _nftAddress, _nftId);
     }
+
     modifier isListed(address nftAddress, uint256 tokenId) {
         Listing memory listing = f_listings[nftAddress][tokenId];
         if (listing.price <= 0) {
@@ -239,6 +290,7 @@ contract Marketplace is ReentrancyGuard {
         CancelledEngAuction[_nftAddress][_nftId] = true;
         emit e_ItemDeleted(msg.sender, _nftAddress, _nftId);
     }
+
     modifier e_isListed(address _nftAddress, uint256 _nftId) {
         EngListing memory e_listing = e_listings[_nftAddress][_nftId];
         if (e_listing.basePrice <= 0) {
@@ -261,6 +313,7 @@ contract Marketplace is ReentrancyGuard {
         CancelledDutchAuction[_nftAddress][_nftId] = true;
         emit d_ItemDeleted(msg.sender, _nftAddress, _nftId);
     }
+
     modifier d_isListed(address _nftAddress, uint256 _nftId) {
         DutchListing memory d_listing = d_listings[_nftAddress][_nftId];
         if (d_listing.startPrice <= 0 && d_listing.endPrice <= 0) {
@@ -272,50 +325,98 @@ contract Marketplace is ReentrancyGuard {
         address indexed seller,
         address indexed nftAddress,
         uint256 indexed tokenId
-    );   
+    );
 
     // BID
     function bidFor(address _nftAddress, uint256 _nftId) external payable {
-        //require(!CancelledEngAuction[_nftAddress][_nftId],"AUCTION CANCELLED");
+        require(!CancelledEngAuction[_nftAddress][_nftId],"AUCTION CANCELLED");
         EngListing memory e_listing = e_listings[_nftAddress][_nftId];
-        require(e_listing.startAt < block.timestamp && e_listing.endAt >= block.timestamp);
-        require(msg.value > e_listing.basePrice, "value must be greater than basePrice!");
-        if(bidding[_nftAddress][_nftId].highestBidder == address(0)) {
+        // require(
+        //     e_listing.startAt < block.timestamp &&
+        //         e_listing.endAt >= block.timestamp, "reverted at line 335"
+        // );
+        require(
+            msg.value > e_listing.basePrice,
+            "value must be greater than basePrice!"
+        );
+        if (bidding[_nftAddress][_nftId].highestBidder == address(0)) {
             bidding[_nftAddress][_nftId].highestBidder = msg.sender;
             bidding[_nftAddress][_nftId].highestBid = msg.value;
         }
-        
-        if(bidding[_nftAddress][_nftId].highestBidder != address(0)) {
-            require(msg.value > bidding[_nftAddress][_nftId].highestBid, "value is less than highest bid!");
-            bidding[_nftAddress][_nftId].previousBidder.push(bidding[_nftAddress][_nftId].highestBidder);
-            bidding[_nftAddress][_nftId].previousBid.push(bidding[_nftAddress][_nftId].highestBid);
+
+        if (bidding[_nftAddress][_nftId].highestBidder != address(0)) {
+            require(
+                msg.value > bidding[_nftAddress][_nftId].highestBid,
+                "value is less than highest bid!"
+            );
+            bidding[_nftAddress][_nftId].previousBidder.push(
+                bidding[_nftAddress][_nftId].highestBidder
+            );
+            bidding[_nftAddress][_nftId].previousBid.push(
+                bidding[_nftAddress][_nftId].highestBid
+            );
             bidding[_nftAddress][_nftId].highestBidder = msg.sender;
             bidding[_nftAddress][_nftId].highestBid = msg.value;
         }
         emit Bid(_nftAddress, _nftId, msg.sender, msg.value);
-    } 
-    //END by owner to send nftId and send bid's amount back to participants
-    function end(address _nftAddress, uint256 _nftId) external{
-        require(block.timestamp < e_listings[_nftAddress][_nftId].startAt,"Auction has not Started!");
-        require(block.timestamp >= e_listings[_nftAddress][_nftId].endAt || CancelledEngAuction[_nftAddress][_nftId],"Please wait till Auction is Expired!");
-        IERC721(_nftAddress).safeTransferFrom(e_listings[_nftAddress][_nftId].seller,bidding[_nftAddress][_nftId].highestBidder,_nftId);
-        payable(e_listings[_nftAddress][_nftId].seller).transfer(bidding[_nftAddress][_nftId].highestBid);  
-        emit EndAuction(_nftAddress, _nftId, bidding[_nftAddress][_nftId].highestBidder, bidding[_nftAddress][_nftId].highestBid);
     }
 
-    function getFixedListing(address _nftAddress, uint256 _nftId) external view returns (Listing memory)
+    //END by owner to send nftId and send bid's amount back to participants
+    function end(address _nftAddress, uint256 _nftId) external {
+        require(
+            block.timestamp < e_listings[_nftAddress][_nftId].startAt,
+            "Auction has not Started!"
+        );
+        require(
+            block.timestamp >= e_listings[_nftAddress][_nftId].endAt ||
+                CancelledEngAuction[_nftAddress][_nftId],
+            "Please wait till Auction is Expired!"
+        );
+        IERC721(_nftAddress).safeTransferFrom(
+            e_listings[_nftAddress][_nftId].seller,
+            bidding[_nftAddress][_nftId].highestBidder,
+            _nftId
+        );
+        payable(e_listings[_nftAddress][_nftId].seller).transfer(
+            bidding[_nftAddress][_nftId].highestBid
+        );
+        emit EndAuction(
+            _nftAddress,
+            _nftId,
+            bidding[_nftAddress][_nftId].highestBidder,
+            bidding[_nftAddress][_nftId].highestBid
+        );
+    }
+
+    function getFixedListing(address _nftAddress, uint256 _nftId)
+        external
+        view
+        returns (Listing memory)
     {
         return f_listings[_nftAddress][_nftId];
     }
 
-    function getEngAuctionListing(address _nftAddress, uint256 _nftId) external view returns (EngListing memory)
+    function getEngAuctionListing(address _nftAddress, uint256 _nftId)
+        external
+        view
+        returns (EngListing memory)
     {
         return e_listings[_nftAddress][_nftId];
     }
 
-    function getDutchAuctionListing(address _nftAddress, uint256 _nftId) external view returns (DutchListing memory)
+    function getDutchAuctionListing(address _nftAddress, uint256 _nftId)
+        external
+        view
+        returns (DutchListing memory)
     {
         return d_listings[_nftAddress][_nftId];
     }
-    
-} 
+
+    function getHighestBid(address _nftAddress, uint256 _nftId)
+        external
+        view
+        returns (address)
+    {
+        return bidding[_nftAddress][_nftId].highestBidder;
+    }
+}
