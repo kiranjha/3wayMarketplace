@@ -142,8 +142,8 @@ contract Marketplace is ReentrancyGuard {
         uint256 tokenId,
         address spender
     ) {
-        IERC721 nft = IERC721(nftAddress);
-        address owner = nft.ownerOf(tokenId);
+        // IERC721 nft = IERC721(nftAddress);
+        address owner = IERC721(nftAddress).ownerOf(tokenId);
         if (spender != owner) {
             revert NotOwner();
         }
@@ -317,6 +317,7 @@ contract Marketplace is ReentrancyGuard {
         e_isOwner(_nftAddress, _nftId, msg.sender)
         e_isListed(_nftAddress, _nftId)
     {
+        // require(bidding[_nftAddress][_nftId].highestBidder != address(0),"there is already a bidder in auction");
         delete (e_listings[_nftAddress][_nftId]);
         CancelledEngAuction[_nftAddress][_nftId] = true;
         emit EngItemDeleted(msg.sender, _nftAddress, _nftId);
@@ -348,7 +349,7 @@ contract Marketplace is ReentrancyGuard {
     }
 
     // BID
-    function bidFor(address _nftAddress, uint256 _nftId) external payable {
+    function bidFor(address _nftAddress, uint256 _nftId) external payable e_isListed(_nftAddress, _nftId) {
         require(!CancelledEngAuction[_nftAddress][_nftId],"AUCTION CANCELLED");
         EngListing memory e_listing = e_listings[_nftAddress][_nftId];
         require(e_listing.startAt < block.timestamp && e_listing.endAt >= block.timestamp, "reverted!");
@@ -379,10 +380,10 @@ contract Marketplace is ReentrancyGuard {
 
     //END function only called by owner to send nftId to highestBidder, nftAmount to seller and send bid's amount back to participants
     function end(address _nftAddress, uint256 _nftId) external e_isOwner(_nftAddress, _nftId, msg.sender) {
-        require(
-            block.timestamp < e_listings[_nftAddress][_nftId].startAt,
-            "Auction has not Started!"
-        );
+        // require(
+        //     block.timestamp < e_listings[_nftAddress][_nftId].startAt,
+        //     "Auction has not Started!"
+        // );
         require(
             block.timestamp >= e_listings[_nftAddress][_nftId].endAt ||
                 CancelledEngAuction[_nftAddress][_nftId],
@@ -416,7 +417,7 @@ contract Marketplace is ReentrancyGuard {
         if(block.timestamp >= d_listings[_nftAddress][_nftId].endAt) {
             return d_listings[_nftAddress][_nftId].endPrice;
         }
-        uint256 elapsedTime = (block.timestamp - d_listings[_nftAddress][_nftId].startAt);
+        uint256 elapsedTime = (block.timestamp - d_listings[_nftAddress][_nftId].startAt)/60;
         uint256 discount = elapsedTime * d_listings[_nftAddress][_nftId].discountRate;
         uint256 currentPrice = (d_listings[_nftAddress][_nftId].startPrice - discount);
         return currentPrice;
@@ -475,4 +476,4 @@ contract Marketplace is ReentrancyGuard {
     {
         return bidding[_nftAddress][_nftId];
     }
-   }
+}
